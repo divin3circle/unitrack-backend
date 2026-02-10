@@ -1,0 +1,104 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String             @id @default(uuid())
+  email             String             @unique
+  password          String
+  subscriptionStatus String            @default("FREE")
+  currencyCode      String             @default("USD")
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  portfolios        Portfolio[]
+  userSnapshots     UserPortfolioSnapshot[]
+  refreshTokens     RefreshToken[]
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  revoked   Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+enum PortfolioType {
+  PLAID
+  WALLET
+  MANUAL
+}
+
+model Portfolio {
+  id              String         @id @default(uuid())
+  userId          String
+  user            User           @relation(fields: [userId], references: [id])
+  
+  name            String
+  type            PortfolioType
+  
+  // Plaid specific
+  plaidItemId     String?        @unique
+  institutionId   String?
+  institutionName String?
+  accessToken     String?        // Encrypted
+  
+  // Wallet specific
+  walletAddress   String?
+  network         String?
+  
+  status          String         @default("ACTIVE") // ACTIVE, NEEDS_REAUTH, ERROR
+  lastSynced      DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  holdings        Holding[]
+  snapshots       PortfolioSnapshot[]
+}
+
+model Holding {
+  id          String    @id @default(uuid())
+  portfolioId String
+  portfolio   Portfolio @relation(fields: [portfolioId], references: [id])
+  
+  ticker      String?
+  name        String
+  quantity    Float
+  costBasis   Float?
+  currentPrice Float
+  value       Float
+  type        String    @default("STOCK") // STOCK, CRYPTO, REAL_ESTATE, etc.
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model PortfolioSnapshot {
+  id          String    @id @default(uuid())
+  portfolioId String
+  portfolio   Portfolio @relation(fields: [portfolioId], references: [id])
+  
+  totalValue  Float
+  date        DateTime  @default(now())
+  
+  createdAt   DateTime  @default(now())
+}
+
+model UserPortfolioSnapshot {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  
+  totalValue  Float
+  date        DateTime  @default(now())
+  
+  createdAt   DateTime  @default(now())
+}

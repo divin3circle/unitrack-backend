@@ -1,0 +1,10 @@
+#
+.env
+api_contract.md
+APP.md
+APP_SPEC.md
+routes.md
+
+node_modules/
+
+package-lock.json
