@@ -4,7 +4,7 @@ api_contract.md
 APP.md
 APP_SPEC.md
 routes.md
-
+plaid-mechanics.md
 node_modules/
 
 package-lock.json

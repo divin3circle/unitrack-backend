@@ -1,26 +1,4 @@
-[(An image of "Plaid logo")Docs](https://plaid.com/docs/index.html.md)
 
-Search or Ask a Question
-
-Close search modal
-
-Search the docsAsk Bill!(An image of "Ask Bill!")
-
-(An image of "Ask Bill!")
-
-Hi! I'm Bill! You can ask me all about the Plaid API. Try asking questions like:
-
-**Note:** Bill isn't perfect. He's just a robot platypus that reads our docs for fun. You should treat his answers with the same healthy skepticism you might treat any other answer on the internet. This chat may be logged for quality and training purposes. Please don't send Bill any PII -- he's scared of intimacy. All chats with Bill are subject to Plaid's [Privacy Policy.](https://plaid.com/legal/#all-audiences)
-
-Markdown
-
-[Plaid.com](https://plaid.com/)
-
-[Log in](https://dashboard.plaid.com/signin?redirect=docs)
-
-[Get API Keys](https://dashboard.plaid.com/signup)
-
-Open nav
 
 Get started with the Quickstart 
 ================================
