@@ -33,8 +33,8 @@ export class ManualAssetController {
       if (!userId) return res.status(401).json({ error: 'User not authenticated' });
 
       const { id } = req.params;
-      const { value } = req.body;
-      const result = await ManualAssetService.updateValue(userId, id, value);
+      const { value, date } = req.body;
+      const result = await ManualAssetService.updateValue(userId, id, { value, date });
       res.json(result);
     } catch (error: any) {
       res.status(400).json({ error: error.message });

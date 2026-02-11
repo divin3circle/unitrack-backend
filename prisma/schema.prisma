@@ -77,6 +77,12 @@ model Holding {
   value       Float
   type        String    @default("STOCK") // STOCK, CRYPTO, REAL_ESTATE, etc.
   
+  // Manual asset transaction metadata
+  transactionType String?   // e.g., "BUY", "SELL", "TRANSFER", "INITIAL"
+  description     String?   // User notes about the transaction
+  transactionDate DateTime? // When the transaction occurred
+  purchasePrice   Float?    // Original purchase price
+  
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }

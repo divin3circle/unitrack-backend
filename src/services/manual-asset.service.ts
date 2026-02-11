@@ -1,13 +1,25 @@
 import prisma from '../config/database';
+import { AggregationService } from './aggregation.service';
 
 export interface ManualAssetData {
   name: string;
-  type: string; // The type of the portfolio/asset (e.g., Real Estate)
-  value: number;
+  type: string; // The type of the portfolio/asset (e.g., Real Estate, Crypto, etc.)
+  value: number; // Current value
   quantity?: number;
   ticker?: string;
   currency?: string;
   notes?: string;
+  
+  // Transaction metadata
+  transactionType?: string; // e.g., "BUY", "SELL", "TRANSFER", "INITIAL"
+  description?: string; // User description of the transaction
+  transactionDate?: Date | string; // When the transaction occurred
+  purchasePrice?: number; // Original purchase price
+}
+
+export interface ManualAssetUpdateData {
+  value: number;
+  date?: Date | string; // Optional: specify the date for the snapshot
 }
 
 export class ManualAssetService {
@@ -22,15 +34,23 @@ export class ManualAssetService {
       },
     });
 
+    const quantity = data.quantity ?? 1;
+    const purchasePrice = data.purchasePrice ?? data.value / quantity;
+
     const holding = await prisma.holding.create({
       data: {
         portfolioId: portfolio.id,
         name: data.name,
         ticker: data.ticker,
-        quantity: data.quantity ?? 1,
-        currentPrice: data.value / (data.quantity ?? 1),
+        quantity,
+        currentPrice: data.value / quantity,
         value: data.value,
         type: data.type.toUpperCase(),
+        costBasis: purchasePrice * quantity,
+        purchasePrice,
+        transactionType: data.transactionType || 'INITIAL',
+        description: data.description || data.notes,
+        transactionDate: data.transactionDate ? new Date(data.transactionDate) : new Date(),
       },
     });
 
@@ -39,10 +59,10 @@ export class ManualAssetService {
       data: {
         portfolioId: portfolio.id,
         totalValue: data.value,
+        date: data.transactionDate ? new Date(data.transactionDate) : new Date(),
       },
     });
 
-    const { AggregationService } = await import('./aggregation.service.js');
     await AggregationService.createUserSnapshot(userId);
 
     return { portfolio, holding };
@@ -56,7 +76,7 @@ export class ManualAssetService {
     });
   }
 
-  static async updateValue(userId: string, portfolioId: string, newValue: number) {
+  static async updateValue(userId: string, portfolioId: string, updateData: ManualAssetUpdateData) {
     const portfolio = await prisma.portfolio.findFirst({
       where: { id: portfolioId, userId, type: 'MANUAL' },
       include: { holdings: true },
@@ -66,6 +86,7 @@ export class ManualAssetService {
 
     const holdingId = portfolio.holdings[0].id;
     const quantity = portfolio.holdings[0].quantity;
+    const newValue = updateData.value;
 
     await prisma.holding.update({
       where: { id: holdingId },
@@ -75,15 +96,17 @@ export class ManualAssetService {
       },
     });
 
-    // Create new snapshot for history
+    // Create new snapshot for history with optional custom date
+    const snapshotDate = updateData.date ? new Date(updateData.date) : new Date();
+    
     await prisma.portfolioSnapshot.create({
       data: {
         portfolioId: portfolio.id,
         totalValue: newValue,
+        date: snapshotDate,
       },
     });
 
-    const { AggregationService } = await import('./aggregation.service.js');
     await AggregationService.createUserSnapshot(userId);
 
     return portfolio;
@@ -96,9 +119,7 @@ export class ManualAssetService {
 
     if (!portfolio) throw new Error('Manual portfolio not found');
 
-    // Cascade delete is handled by database if configured, 
-    // but here we manually delete relatives if needed or rely on Prisma.
-    // In our schema we didn't specify onDelete: Cascade, so let's delete manually.
+    // Delete related data
     await prisma.holding.deleteMany({ where: { portfolioId } });
     await prisma.portfolioSnapshot.deleteMany({ where: { portfolioId } });
     

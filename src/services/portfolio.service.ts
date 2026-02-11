@@ -1,6 +1,101 @@
 import prisma from '../config/database';
 
 export class PortfolioService {
+  static async getAllPortfolios(userId: string) {
+    const portfolios = await prisma.portfolio.findMany({
+      where: { userId },
+      include: {
+        holdings: true,
+        snapshots: {
+          orderBy: { date: 'desc' },
+          take: 1, // Get latest snapshot
+        },
+      },
+    });
+
+    return portfolios.map((p: any) => {
+      const totalValue = p.holdings.reduce((sum: number, h: any) => sum + h.value, 0);
+      const latestSnapshot = p.snapshots[0];
+
+      return {
+        id: p.id,
+        name: p.name,
+        type: p.type,
+        status: p.status,
+        totalValue,
+        lastSynced: p.lastSynced,
+        createdAt: p.createdAt,
+        // Type-specific metadata
+        ...(p.type === 'PLAID' && {
+          institutionId: p.institutionId,
+          institutionName: p.institutionName,
+        }),
+        ...(p.type === 'WALLET' && {
+          walletAddress: p.walletAddress,
+          network: p.network,
+        }),
+        // Snapshot data
+        latestSnapshot: latestSnapshot ? {
+          date: latestSnapshot.date,
+          value: latestSnapshot.totalValue,
+        } : null,
+      };
+    });
+  }
+
+  static async getPortfolioById(userId: string, portfolioId: string) {
+    const portfolio = await prisma.portfolio.findFirst({
+      where: { id: portfolioId, userId },
+      include: {
+        holdings: true,
+        snapshots: {
+          orderBy: { date: 'desc' },
+          take: 30, // Last 30 snapshots for charting
+        },
+      },
+    });
+
+    if (!portfolio) return null;
+
+    const totalValue = (portfolio.holdings as any[]).reduce((sum, h: any) => sum + h.value, 0);
+
+    return {
+      id: portfolio.id,
+      name: portfolio.name,
+      type: portfolio.type,
+      status: portfolio.status,
+      totalValue,
+      lastSynced: portfolio.lastSynced,
+      createdAt: portfolio.createdAt,
+      updatedAt: portfolio.updatedAt,
+      // Type-specific metadata
+      ...(portfolio.type === 'PLAID' && {
+        institutionId: portfolio.institutionId,
+        institutionName: portfolio.institutionName,
+      }),
+      ...(portfolio.type === 'WALLET' && {
+        walletAddress: portfolio.walletAddress,
+        network: portfolio.network,
+      }),
+      // Holdings
+      holdings: (portfolio.holdings as any[]).map((h: any) => ({
+        id: h.id,
+        ticker: h.ticker,
+        name: h.name,
+        type: h.type,
+        quantity: h.quantity,
+        currentPrice: h.currentPrice,
+        value: h.value,
+        costBasis: h.costBasis,
+      })),
+      // Historical snapshots
+      snapshots: (portfolio.snapshots as any[]).map((s: any) => ({
+        date: s.date.toISOString().split('T')[0],
+        value: s.totalValue,
+      })),
+    };
+  }
+
   static async getSummary(userId: string) {
     const portfolios = await prisma.portfolio.findMany({
       where: { userId },
