@@ -5,6 +5,8 @@ APP.md
 APP_SPEC.md
 routes.md
 plaid-mechanics.md
+
 node_modules/
+bun.lock
 
 package-lock.json
