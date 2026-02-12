@@ -5,6 +5,8 @@ APP.md
 APP_SPEC.md
 routes.md
 plaid-mechanics.md
+plaid_flow.md
+integration.md
 
 node_modules/
 bun.lock
